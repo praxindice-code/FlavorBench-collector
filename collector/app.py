@@ -5,6 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 
 from .local_vision import AnalysisRequest, analyze, status
+from .cases import sample_cases
 from .schema import Session
 
 app = FastAPI(title="FlavorBench Collector", docs_url=None, redoc_url=None)
@@ -40,6 +41,11 @@ def javascript():
     return FileResponse(WEB / "app.js", media_type="text/javascript")
 
 
+@app.get("/visuals.js")
+def visualization_javascript():
+    return FileResponse(WEB / "visuals.js", media_type="text/javascript")
+
+
 @app.get("/style.css")
 def stylesheet():
     return FileResponse(WEB / "style.css", media_type="text/css")
@@ -48,6 +54,11 @@ def stylesheet():
 @app.get("/sample.json")
 def sample():
     return FileResponse(Path(__file__).resolve().parents[1] / "examples" / "synthetic_session.json", media_type="application/json")
+
+
+@app.get("/api/cases")
+def cases():
+    return {"cases": sample_cases(), "illustrative": True}
 
 
 @app.get("/api/health")

@@ -6,6 +6,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 from PIL import Image
 from collector.app import app
+from collector.cases import sample_cases
 from collector import local_vision
 from collector.evaluate import compare
 from collector.schema import Session
@@ -69,6 +70,37 @@ def test_public_schema_excludes_private_fields():
 def test_server_does_not_expose_media_upload_route():
     paths = set(app.openapi()["paths"])
     assert not any("upload" in path or "media" in path for path in paths)
+
+
+def test_all_illustrative_cases_are_valid_and_have_no_fake_video_times():
+    cases = sample_cases()
+    assert len(cases) == 12
+    assert len({case["id"] for case in cases}) == 12
+    for case in cases:
+        session = Session.model_validate(case["session"])
+        assert session.events
+        assert session.source_name == "Synthetic demonstration; no source media"
+        assert all(event.timestamp_s is None for event in session.events)
+        assert all(event.evidence == "instructed" for event in session.events)
+    assert len(client.get("/api/cases").json()["cases"]) == 12
+
+
+def test_order_pair_has_matching_ingredients_and_different_first_addition():
+    cases = {case["id"]: Session.model_validate(case["session"]) for case in sample_cases()}
+    late, early = cases["tomato-miso-late"], cases["tomato-miso-early"]
+    assert [(i.name, i.quantity_g) for i in late.ingredients] == [
+        (i.name, i.quantity_g) for i in early.ingredients]
+    assert late.events[0].ingredient != early.events[0].ingredient
+    assert [event.duration_s for event in late.events if event.action == "heat"] == [420]
+    assert [event.duration_s for event in early.events if event.action == "heat"] == [420]
+
+
+def test_visualization_assets_are_served():
+    page = client.get("/")
+    assert page.status_code == 200
+    assert "visuals.js" in page.text
+    assert "case-select" in page.text
+    assert client.get("/visuals.js").status_code == 200
 
 
 def test_local_model_result_requires_review(monkeypatch):

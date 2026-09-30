@@ -17,13 +17,15 @@ python -m uvicorn collector.app:app --host 127.0.0.1 --port 8010
 
 Open `http://127.0.0.1:8010/`. Manual annotation requires no model or GPU. Media is selected from your computer and played in the browser; the server does not upload or save it. You can import a session, edit the annotation timeline, and validate/export a JSON session. Re-select source media after importing an annotation.
 
+The case library loads all twelve authored examples, including an onion-first versus all-in-first order comparison with identical ingredients. These cases have no source media: their steps use recipe order and `null` clip timestamps. The annotation views show the ordered process, recorded ingredient masses and preparation, evidence categories, and review coverage. They summarize the annotation and do not represent flavor scores. Select a timed event in your own video annotation to jump to its frame.
+
 To make optional drafts, install [Ollama](https://ollama.com/) and a **locally downloaded vision-capable** model. The collector checks the model's capabilities and rejects Ollama entries that report a remote host or model. It sends at most six sampled JPEG frames plus recipe text to Ollama on `127.0.0.1`; it never sends the video file. On a CPU this can take several minutes. Every draft item remains unreviewed until you check it against the source.
 
 ## Annotation contract
 
 `GET /api/schema` exposes the JSON schema. `POST /api/validate` validates and returns a normalized session. Exports use FlavorBench session schema `1.1`, which the private research tool can import. An event can have a clip timestamp, or `null` when a recipe step cannot be matched to a visible frame. The clip's timeline and a cooking step's duration are distinct fields; an edited video gap is not treated as elapsed cooking time. Optional temperature and particle size fields should be populated only when evidenced.
 
-The [sample session](examples/synthetic_session.json) is invented and may be used to try the UI. It is not an observation or training datum.
+The [sample session](examples/synthetic_session.json) and [case library](examples/cases.json) are invented and may be used to try the UI. They are not observations or training data. `GET /api/cases` returns the validated cases.
 
 To compare two reviewed annotations of the same clip, run `python -m collector.evaluate reference.json candidate.json`. The tool matches only reviewed, observed events with the same action and vessel within three seconds. It reports event precision, recall, and F1; it does not measure sensory accuracy.
 

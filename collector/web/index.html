@@ -5,12 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>FlavorBench Collector</title>
   <link rel="stylesheet" href="/style.css">
+  <script src="/visuals.js" defer></script>
   <script src="/app.js" defer></script>
 </head>
 <body>
   <header class="masthead"><div><strong>FLAVORBENCH</strong><span> / COLLECTOR</span></div><small>LOCAL ANNOTATION WORKSPACE</small></header>
   <main>
     <div class="intro"><div><p class="eyebrow">RESEARCH TOOL · 01</p><h1>Cooking process annotation</h1><p>Record what a video shows, what a recipe says, and what remains uncertain.</p></div><div class="privacy">SOURCE MEDIA STAYS IN THIS BROWSER<br><span>Only sampled frames are sent to an optional local Ollama model.</span></div></div>
+    <section class="panel case-library" aria-labelledby="case-heading">
+      <div class="panel-head"><h2 id="case-heading">Illustrative case library</h2><span id="case-count">LOADING CASES</span></div>
+      <div class="case-controls"><label>Choose a case<select id="case-select"><option value="">Loading examples…</option></select></label><button id="load-case" class="secondary" disabled>Load selected case</button><p id="case-description" class="muted">Authored examples have no source media or sensory measurements.</p></div>
+    </section>
+    <section class="panel visualization" aria-labelledby="visual-heading">
+      <div class="panel-head"><h2 id="visual-heading">Annotation views</h2><span>ORDER · EVIDENCE · PREPARATION</span></div>
+      <div id="viz-summary" class="viz-summary"></div>
+      <div class="viz-grid">
+        <div class="viz-card"><div class="viz-card-head"><h3>Process sequence</h3><small>SELECT A TIMED STEP TO SEEK VIDEO</small></div><div id="process-timeline" class="process-timeline"></div></div>
+        <div class="viz-side">
+          <div class="viz-card"><div class="viz-card-head"><h3>Evidence and review</h3><small>ANNOTATION COUNTS</small></div><div id="evidence-view"></div></div>
+          <div class="viz-card"><div class="viz-card-head"><h3>Ingredient preparation</h3><small>RECORDED MASS, NOT FLAVOR</small></div><div id="ingredient-view"></div></div>
+        </div>
+      </div>
+      <div id="compare-box" class="viz-card compare-box" hidden><div class="viz-card-head"><h3>Order comparison</h3><small>SAME INGREDIENTS · DIFFERENT FIRST STEPS</small></div><p id="compare-label" class="muted"></p><div id="compare-timeline" class="comparison"></div></div>
+      <p class="fine">These views summarize annotation metadata. They are not sensory predictions or validated measurements.</p>
+    </section>
     <section class="workspace">
       <div class="left">
         <div class="panel"><div class="panel-head"><h2>Source</h2><span>01 / INPUT</span></div>

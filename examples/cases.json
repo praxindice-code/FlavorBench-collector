@@ -1,0 +1,327 @@
+[
+  {
+    "id": "lemon-yogurt",
+    "title": "Lemon yogurt dressing",
+    "description": "Tangy, salty, lightly sweet",
+    "ingredients": [
+      [
+        "plain yogurt",
+        100
+      ],
+      [
+        "lemon juice",
+        10
+      ],
+      [
+        "white sugar",
+        2
+      ],
+      [
+        "table salt",
+        0.5
+      ]
+    ],
+    "finish": "Stir until smooth."
+  },
+  {
+    "id": "chili-glaze",
+    "title": "Sweet chili glaze",
+    "description": "Sweetness, acidity and chili heat",
+    "ingredients": [
+      [
+        "honey",
+        25
+      ],
+      [
+        "white vinegar",
+        12
+      ],
+      [
+        "chili pepper (fresh)",
+        8
+      ],
+      [
+        "soy sauce",
+        8
+      ]
+    ],
+    "finish": "Mix into a glaze."
+  },
+  {
+    "id": "grapefruit-salad",
+    "title": "Grapefruit and mint salad",
+    "description": "Citrus tartness with a bitter edge",
+    "ingredients": [
+      [
+        "grapefruit (fresh)",
+        120
+      ],
+      [
+        "lemon juice",
+        8
+      ],
+      [
+        "fresh mint",
+        3
+      ],
+      [
+        "white sugar",
+        4
+      ]
+    ],
+    "finish": "Toss gently."
+  },
+  {
+    "id": "umami-dashi",
+    "title": "Kombu and bonito dashi",
+    "description": "Two classic umami contributors",
+    "ingredients": [
+      [
+        "water",
+        500
+      ],
+      [
+        "kombu (dried kelp)",
+        20
+      ],
+      [
+        "bonito flakes (katsuobushi)",
+        15
+      ],
+      [
+        "miso paste",
+        10
+      ]
+    ],
+    "finish": "Steep kombu and bonito in water, then stir in miso."
+  },
+  {
+    "id": "coffee-molasses",
+    "title": "Coffee molasses sauce",
+    "description": "Bitter coffee balanced with syrup",
+    "ingredients": [
+      [
+        "coffee (brewed)",
+        100
+      ],
+      [
+        "molasses",
+        25
+      ],
+      [
+        "cocoa powder (unsweetened)",
+        5
+      ],
+      [
+        "table salt",
+        0.5
+      ]
+    ],
+    "finish": "Stir into a sauce."
+  },
+  {
+    "id": "pomegranate-tea",
+    "title": "Pomegranate tea dressing",
+    "description": "Fruit acidity and tea polyphenols",
+    "ingredients": [
+      [
+        "pomegranate (fresh)",
+        80
+      ],
+      [
+        "green tea (brewed)",
+        50
+      ],
+      [
+        "lime juice",
+        10
+      ],
+      [
+        "maple syrup",
+        8
+      ]
+    ],
+    "finish": "Whisk together."
+  },
+  {
+    "id": "tomato-miso",
+    "title": "Tomato miso sauce",
+    "description": "Tomato acidity against fermented umami",
+    "ingredients": [
+      [
+        "tomato (fresh)",
+        180
+      ],
+      [
+        "onion (raw)",
+        50
+      ],
+      [
+        "miso paste",
+        18
+      ],
+      [
+        "table salt",
+        1
+      ]
+    ],
+    "finish": "Mix into a quick sauce."
+  },
+  {
+    "id": "tonic-lime",
+    "title": "Tonic lime spritz",
+    "description": "Quinine bitterness, lime and sweetness",
+    "ingredients": [
+      [
+        "tonic water",
+        150
+      ],
+      [
+        "lime juice",
+        12
+      ],
+      [
+        "maple syrup",
+        7
+      ]
+    ],
+    "finish": "Stir and serve chilled."
+  },
+  {
+    "id": "wasabi-soy",
+    "title": "Wasabi soy dip",
+    "description": "Savory salt with sharp mustard-family evidence",
+    "ingredients": [
+      [
+        "soy sauce",
+        30
+      ],
+      [
+        "wasabi",
+        4
+      ],
+      [
+        "white vinegar",
+        8
+      ]
+    ],
+    "finish": "Stir into a dip."
+  },
+  {
+    "id": "chocolate-orange",
+    "title": "Chocolate orange sauce",
+    "description": "Chocolate bitterness with citrus acidity",
+    "ingredients": [
+      [
+        "dark chocolate",
+        40
+      ],
+      [
+        "orange juice",
+        30
+      ],
+      [
+        "white sugar",
+        4
+      ]
+    ],
+    "finish": "Mix until smooth."
+  },
+  {
+    "id": "tomato-miso-late",
+    "title": "Tomato miso · onion first",
+    "description": "Heat the minced onion before adding tomato and miso",
+    "ingredients": [
+      [
+        "tomato (fresh)",
+        180,
+        "diced"
+      ],
+      [
+        "onion (raw)",
+        100,
+        "minced"
+      ],
+      [
+        "miso paste",
+        18,
+        "pureed"
+      ],
+      [
+        "table salt",
+        1,
+        "unknown"
+      ]
+    ],
+    "finish": "Sauté onion first, then add tomato and miso.",
+    "steps": [
+      {
+        "action": "add",
+        "ingredient": "onion (raw)",
+        "description": "Add minced onion to the pan."
+      },
+      {
+        "action": "heat",
+        "ingredient": "onion",
+        "description": "Saute the onion for 7 minutes.",
+        "duration_s": 420
+      },
+      {
+        "action": "add",
+        "ingredient": "tomato (fresh), miso paste, table salt",
+        "description": "Add diced tomato, miso and salt after heating."
+      },
+      {
+        "action": "mix",
+        "ingredient": "sauce",
+        "description": "Stir the late ingredients into the sauce."
+      }
+    ]
+  },
+  {
+    "id": "tomato-miso-early",
+    "title": "Tomato miso · all in first",
+    "description": "Same ingredients and heat, all added before cooking",
+    "ingredients": [
+      [
+        "tomato (fresh)",
+        180,
+        "diced"
+      ],
+      [
+        "onion (raw)",
+        100,
+        "minced"
+      ],
+      [
+        "miso paste",
+        18,
+        "pureed"
+      ],
+      [
+        "table salt",
+        1,
+        "unknown"
+      ]
+    ],
+    "finish": "Sauté everything together.",
+    "steps": [
+      {
+        "action": "add",
+        "ingredient": "tomato (fresh), onion (raw), miso paste, table salt",
+        "description": "Add every ingredient to the pan before heating."
+      },
+      {
+        "action": "heat",
+        "ingredient": "sauce",
+        "description": "Saute everything together for 7 minutes.",
+        "duration_s": 420
+      },
+      {
+        "action": "mix",
+        "ingredient": "sauce",
+        "description": "Stir after heating."
+      }
+    ]
+  }
+]
