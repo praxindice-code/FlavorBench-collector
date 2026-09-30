@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FlavorBench Collector</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="masthead"><div><strong>FLAVORBENCH</strong><span> / COLLECTOR</span></div><small>LOCAL ANNOTATION WORKSPACE</small></header>
+  <main>
+    <div class="intro"><div><p class="eyebrow">RESEARCH TOOL · 01</p><h1>Cooking process annotation</h1><p>Record what a video shows, what a recipe says, and what remains uncertain.</p></div><div class="privacy">SOURCE MEDIA STAYS IN THIS BROWSER<br><span>Only sampled frames are sent to an optional local Ollama model.</span></div></div>
+    <section class="workspace">
+      <div class="left">
+        <div class="panel"><div class="panel-head"><h2>Source</h2><span>01 / INPUT</span></div>
+          <label class="file-drop">Choose a video or image<input id="media-file" type="file" accept="video/*,image/*"></label>
+          <div id="media-box" class="media-box"><div id="media-empty">No media selected</div><video id="video" controls hidden></video><img id="image" alt="Selected source" hidden></div>
+          <div class="grid two"><label>Title<input id="title" maxlength="120" value="Untitled cooking session"></label><label>Source name<input id="source-name" maxlength="255" placeholder="Optional attribution"></label></div>
+          <label>Recipe or transcript text<textarea id="recipe-text" rows="5" maxlength="12000" placeholder="Paste source text here. Label it as instruction evidence when annotating."></textarea></label>
+          <div class="grid two"><label>Clip duration (seconds)<input id="duration" type="number" min="0" max="600" step="0.1" value="0"></label><label>Analysis mode<select id="model"><option value="">Manual annotation</option></select></label></div>
+          <div class="actions"><button id="analyze" class="secondary" disabled>Draft from local model</button><span id="model-note" class="muted">Checking local models…</span></div>
+        </div>
+        <div class="panel"><div class="panel-head"><h2>Session</h2><span>JSON / PORTABLE</span></div>
+          <div class="actions"><button id="save">Validate & export JSON</button><button id="import" class="secondary">Import JSON</button><input id="import-file" type="file" accept="application/json,.json" hidden><button id="sample" class="ghost">Load synthetic sample</button><button id="clear" class="ghost">Clear</button></div>
+          <p class="fine">Exported annotations contain text and metadata, never the source video or image. Review any model draft before marking it reviewed.</p>
+        </div>
+      </div>
+      <div class="right">
+        <div class="panel"><div class="panel-head"><h2>Ingredients</h2><span id="ingredient-count">0 ITEMS</span></div>
+          <div class="grid ingredient-form"><label>Name<input id="ingredient-name" maxlength="120" placeholder="e.g., onion"></label><label>Quantity (g)<input id="ingredient-quantity" type="number" min="0.001" max="100000" step="any" placeholder="Unknown"></label><label>Preparation<select id="ingredient-preparation"><option>unknown</option><option>whole</option><option>sliced</option><option>diced</option><option>chopped</option><option>minced</option><option>pureed</option><option>ground</option></select></label><label>Evidence<select id="ingredient-evidence"><option>observed</option><option>instructed</option><option>estimated</option></select></label></div>
+          <button id="add-ingredient" class="secondary">Add ingredient</button><div id="ingredients" class="records"></div>
+        </div>
+        <div class="panel"><div class="panel-head"><h2>Ordered events</h2><span id="event-count">0 EVENTS</span></div>
+          <div class="grid event-form"><label>Time in clip (s)<input id="event-time" type="number" min="0" max="600" step="0.1" placeholder="Unmatched text"></label><label>Action<select id="event-action"><option>observe</option><option>add</option><option>mix</option><option>heat</option><option>cut</option><option>rest</option><option>transfer</option><option>serve</option></select></label><label>Ingredient<input id="event-ingredient" maxlength="120" placeholder="Optional"></label><label>Vessel<input id="event-vessel" maxlength="80" value="bowl"></label><label class="wide">Description<input id="event-description" maxlength="1000" placeholder="Describe only supported evidence"></label><label>Evidence<select id="event-evidence"><option>observed</option><option>instructed</option><option>estimated</option></select></label><label>Confidence<select id="event-confidence"><option>low</option><option>medium</option><option>high</option></select></label><label>Step duration (s)<input id="event-duration" type="number" min="0.001" max="172800" step="any" placeholder="Unknown"></label><label>Target temp (°C)<input id="event-temp" type="number" min="-100" max="400" step="any" placeholder="Unknown"></label><label>Particle size (mm)<input id="event-size" type="number" min="0.001" max="1000" step="any" placeholder="Unknown"></label></div>
+          <button id="add-event" class="secondary">Add event</button><div id="events" class="records"></div>
+        </div>
+      </div>
+    </section>
+    <div id="message" role="status" aria-live="polite"></div>
+  </main>
+</body>
+</html>

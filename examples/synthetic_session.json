@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.1",
+  "title": "Synthetic tomato and onion sauté",
+  "source_name": "Invented example; no source media",
+  "duration_s": 60,
+  "recipe_text": "Dice onion. Warm a pan. Add onion and stir. Add chopped tomato. Simmer briefly.",
+  "ingredients": [
+    {"name": "onion", "quantity_g": 80, "evidence": "instructed", "reviewed": true, "preparation": "diced"},
+    {"name": "tomato", "quantity_g": 120, "evidence": "instructed", "reviewed": true, "preparation": "chopped"}
+  ],
+  "events": [
+    {"timestamp_s": 0, "action": "heat", "ingredient": "", "vessel": "pan", "description": "Warm the pan.", "evidence": "instructed", "confidence": "high", "reviewed": true, "duration_s": null, "target_temperature_c": null, "particle_size_mm": null},
+    {"timestamp_s": 14, "action": "add", "ingredient": "onion", "vessel": "pan", "description": "Add diced onion.", "evidence": "instructed", "confidence": "high", "reviewed": true, "duration_s": null, "target_temperature_c": null, "particle_size_mm": null},
+    {"timestamp_s": 29, "action": "mix", "ingredient": "onion", "vessel": "pan", "description": "Stir the onion.", "evidence": "instructed", "confidence": "high", "reviewed": true, "duration_s": null, "target_temperature_c": null, "particle_size_mm": null},
+    {"timestamp_s": 42, "action": "add", "ingredient": "tomato", "vessel": "pan", "description": "Add chopped tomato.", "evidence": "instructed", "confidence": "high", "reviewed": true, "duration_s": null, "target_temperature_c": null, "particle_size_mm": null}
+  ],
+  "analysis_model": "manual"
+}
