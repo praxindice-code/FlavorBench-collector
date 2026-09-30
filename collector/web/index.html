@@ -6,6 +6,7 @@
   <title>FlavorBench Collector</title>
   <link rel="stylesheet" href="/style.css">
   <script src="/visuals.js" defer></script>
+  <script src="/flavor.js" defer></script>
   <script src="/app.js" defer></script>
 </head>
 <body>
@@ -15,6 +16,12 @@
     <section class="panel case-library" aria-labelledby="case-heading">
       <div class="panel-head"><h2 id="case-heading">Illustrative case library</h2><span id="case-count">LOADING CASES</span></div>
       <div class="case-controls"><label>Choose a case<select id="case-select"><option value="">Loading examples…</option></select></label><button id="load-case" class="secondary" disabled>Load selected case</button><p id="case-description" class="muted">Authored examples have no source media or sensory measurements.</p></div>
+    </section>
+    <section class="panel flavor-panel" aria-labelledby="flavor-heading">
+      <div class="panel-head"><h2 id="flavor-heading">Experimental flavor fingerprint</h2><span id="flavor-count">LOCAL ENGINE</span></div>
+      <div class="flavor-controls"><label>Process estimate<select id="flavor-model"><option value="none">Deterministic</option><option value="mamba">Mamba checkpoint · exploratory</option></select></label><button id="calculate-flavor">Calculate flavor estimate</button><span id="flavor-status" class="muted" role="status">Checking the local research engine…</span></div>
+      <div id="flavor-output" class="flavor-output"></div>
+      <p class="fine">Scores are provisional 0–100 research estimates. Group averages summarize mixed sources and are not validated flavor measures. Demo reference proxies are illustrative and are removed after you change a case. The local research engine runs separately on port 8000.</p>
     </section>
     <section class="panel visualization" aria-labelledby="visual-heading">
       <div class="panel-head"><h2 id="visual-heading">Annotation views</h2><span>ORDER · EVIDENCE · PREPARATION</span></div>

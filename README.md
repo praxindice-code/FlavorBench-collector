@@ -19,6 +19,13 @@ Open `http://127.0.0.1:8010/`. Manual annotation requires no model or GPU. Media
 
 The case library loads all twelve authored examples, including an onion-first versus all-in-first order comparison with identical ingredients. These cases have no source media: their steps use recipe order and `null` clip timestamps. The annotation views show the ordered process, recorded ingredient masses and preparation, evidence categories, and review coverage. They summarize the annotation and do not represent flavor scores. Select a timed event in your own video annotation to jump to its frame.
 
+### Optional local flavor estimates
+
+If the separate, private FlavorBench research workbench is running on `127.0.0.1:8000`, the collector also displays an experimental eleven-dimension flavor fingerprint. It sends the current JSON annotation only to that fixed loopback address. The public collector contains no sensory dataset, scoring weights, or flavor model. The deterministic engine is selected by default; the Mamba checkpoint is available as an exploratory option and is trained on synthetic examples.
+
+Each displayed number is labeled **model estimate** or **demo reference proxy**. Reference proxies come from the original authored showcase case, not a measurement of the current annotation, and are shown only while its ingredient and event lists remain unchanged. After an edit, unsupported dimensions become unscored. When recipe steps have no video timestamps, a model-only schedule preserves their order; it is not presented as observed clip time. These numbers are provisional and have not been validated against a controlled sensory panel. The collector continues to work as an annotation tool if the private engine is unavailable.
+The onion-first and all-in-first cases also show a side-by-side difference for dimensions scored by the process model.
+
 To make optional drafts, install [Ollama](https://ollama.com/) and a **locally downloaded vision-capable** model. The collector checks the model's capabilities and rejects Ollama entries that report a remote host or model. It sends at most six sampled JPEG frames plus recipe text to Ollama on `127.0.0.1`; it never sends the video file. On a CPU this can take several minutes. Every draft item remains unreviewed until you check it against the source.
 
 ## Annotation contract

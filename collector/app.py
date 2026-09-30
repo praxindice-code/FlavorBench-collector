@@ -6,6 +6,7 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from .local_vision import AnalysisRequest, analyze, status
 from .cases import sample_cases
+from .flavor_bridge import FlavorRequest, engine_status, predict
 from .schema import Session
 
 app = FastAPI(title="FlavorBench Collector", docs_url=None, redoc_url=None)
@@ -46,6 +47,11 @@ def visualization_javascript():
     return FileResponse(WEB / "visuals.js", media_type="text/javascript")
 
 
+@app.get("/flavor.js")
+def flavor_javascript():
+    return FileResponse(WEB / "flavor.js", media_type="text/javascript")
+
+
 @app.get("/style.css")
 def stylesheet():
     return FileResponse(WEB / "style.css", media_type="text/css")
@@ -84,3 +90,13 @@ def local_models():
 @app.post("/api/analyze")
 def analyze_local(request: AnalysisRequest):
     return analyze(request)
+
+
+@app.get("/api/flavor/status")
+def flavor_status():
+    return engine_status()
+
+
+@app.post("/api/flavor/predict")
+def flavor_predict(request: FlavorRequest):
+    return predict(request)

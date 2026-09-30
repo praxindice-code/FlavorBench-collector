@@ -1,12 +1,13 @@
 "use strict";
 const $=id=>document.getElementById(id);
 const blank=()=>({schema_version:"1.1",title:"Untitled cooking session",source_name:"",duration_s:0,recipe_text:"",ingredients:[],events:[],analysis_model:"manual"});
-let session=blank(),mediaUrl=null,mediaKind=null,noticeTimer=null,cases=[],activeCaseId=null;
+let session=blank(),mediaUrl=null,mediaKind=null,noticeTimer=null,cases=[],activeCaseId=null,flavorResult=null,flavorKey=null,flavorSerial=0;
 const num=id=>$(id).value===""?null:Number($(id).value);
 const msg=(value)=>{const box=$("message");box.textContent=value;box.classList.add("show");clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>box.classList.remove("show"),7000)};
 const escapeFile=s=>s.replace(/[^a-z0-9_-]+/gi,"-").replace(/^-|-$/g,"").slice(0,60)||"session";
 const row=(title,meta,reviewed,onReview,onDelete)=>{const el=document.createElement("div");el.className="record";const left=document.createElement("div");const a=document.createElement("div");a.className="record-title";a.textContent=title;const b=document.createElement("div");b.className="record-meta";b.textContent=meta;left.append(a,b);const actions=document.createElement("div");actions.className="record-actions";const label=document.createElement("label");const check=document.createElement("input");check.type="checkbox";check.checked=reviewed;check.addEventListener("change",()=>onReview(check.checked));label.append(check,document.createTextNode("Reviewed"));const del=document.createElement("button");del.className="ghost";del.textContent="Remove";del.addEventListener("click",onDelete);actions.append(label,del);el.append(left,actions);return el};
 function pairedCase(){const other=activeCaseId==="tomato-miso-late"?"tomato-miso-early":activeCaseId==="tomato-miso-early"?"tomato-miso-late":null;return other?cases.find(item=>item.id===other)?.session:null}
+function predictionKey(){return JSON.stringify([activeCaseId,$("flavor-model").value,session.ingredients,session.events])}
 function seekTo(time){const video=$("video");if(mediaKind!=="video"||video.hidden)return;video.currentTime=Math.min(time,video.duration||time);video.scrollIntoView({behavior:"smooth",block:"center"})}
 function render(){
   $("ingredient-count").textContent=`${session.ingredients.length} ITEMS`;
@@ -27,6 +28,12 @@ function render(){
     events.append(entry);
   });
   renderVisuals(session,pairedCase(),seekTo);
+  if(flavorKey&&flavorKey!==predictionKey()){
+    flavorResult=null;flavorKey=null;flavorSerial++;
+    $("calculate-flavor").disabled=false;
+    $("flavor-status").textContent="Annotations changed. Recalculate the flavor estimate.";
+  }
+  renderFlavor(flavorResult,flavorResult?"":"No current estimate. Calculate after reviewing annotations.");
 }
 function readMeta(){session.title=$("title").value.trim()||"Untitled cooking session";session.source_name=$("source-name").value.trim();session.duration_s=Number($("duration").value);session.recipe_text=$("recipe-text").value;return session}
 function showMeta(){for(const [id,key] of [["title","title"],["source-name","source_name"],["duration","duration_s"],["recipe-text","recipe_text"]])$(id).value=session[key];render()}
@@ -38,12 +45,32 @@ $("add-ingredient").addEventListener("click",()=>{const name=$("ingredient-name"
 $("add-event").addEventListener("click",()=>{const description=$("event-description").value.trim();if(!description){msg("Event description is required.");return}session.events.push({timestamp_s:num("event-time"),action:$("event-action").value,ingredient:$("event-ingredient").value.trim(),vessel:$("event-vessel").value.trim()||"bowl",description,evidence:$("event-evidence").value,confidence:$("event-confidence").value,reviewed:true,duration_s:num("event-duration"),target_temperature_c:num("event-temp"),particle_size_mm:num("event-size")});$("event-description").value="";render()});
 async function validate(data){const response=await fetch("/api/validate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});if(!response.ok){const error=await response.json();throw Error(JSON.stringify(error.detail||error))}return response.json()}
 $("save").addEventListener("click",async()=>{try{const checked=await validate(readMeta());const blob=new Blob([JSON.stringify(checked,null,2)+"\n"],{type:"application/json"});const url=URL.createObjectURL(blob);const link=document.createElement("a");link.href=url;link.download=`${escapeFile(checked.title)}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),30000);msg("Validated annotation exported.")}catch(e){msg(`Fix the session before export: ${e.message}`)}});
-$("import").addEventListener("click",()=>$("import-file").click());$("import-file").addEventListener("change",async()=>{const file=$("import-file").files[0];if(!file)return;try{const imported=JSON.parse(await file.text());session=await validate(imported);activeCaseId=null;resetMedia();showMeta();msg("Session imported. Source media must be reselected.")}catch(e){msg(`Import failed: ${e.message}`)}$("import-file").value=""});
+$("import").addEventListener("click",()=>$("import-file").click());$("import-file").addEventListener("change",async()=>{const file=$("import-file").files[0];if(!file)return;try{const imported=JSON.parse(await file.text());session=await validate(imported);activeCaseId=null;resetMedia();showMeta();msg("Session imported. Source media must be reselected.");runFlavor()}catch(e){msg(`Import failed: ${e.message}`)}$("import-file").value=""});
 $("clear").addEventListener("click",()=>{session=blank();activeCaseId=null;resetMedia();showMeta();msg("Session cleared.")});
-$("sample").addEventListener("click",async()=>{try{const response=await fetch("/sample.json");session=await validate(await response.json());activeCaseId=null;resetMedia();showMeta();msg("Synthetic sample loaded.")}catch(e){msg(e.message)}});
+$("sample").addEventListener("click",async()=>{try{const response=await fetch("/sample.json");session=await validate(await response.json());activeCaseId=null;resetMedia();showMeta();msg("Synthetic sample loaded.");runFlavor()}catch(e){msg(e.message)}});
 $("case-select").addEventListener("change",()=>{const item=cases.find(entry=>entry.id===$("case-select").value);$("case-description").textContent=item?item.description:"Authored examples have no source media or sensory measurements."});
-$("load-case").addEventListener("click",()=>{const item=cases.find(entry=>entry.id===$("case-select").value);if(!item)return;session=JSON.parse(JSON.stringify(item.session));activeCaseId=item.id;resetMedia();showMeta();msg(`Loaded ${item.title||item.session.title}. Illustrative case; no source media.`)});
-async function loadCases(){try{const response=await fetch("/api/cases");if(!response.ok)throw Error("Case library unavailable");const data=await response.json();cases=data.cases;const select=$("case-select");select.replaceChildren();for(const item of cases)select.add(new Option(item.session.title,item.id));$("case-count").textContent=`${cases.length} CASES`;$("load-case").disabled=!cases.length;if(cases.length){select.value=cases[0].id;$("case-description").textContent=cases[0].description;if(!session.ingredients.length&&!session.events.length&&$("title").value==="Untitled cooking session"){session=JSON.parse(JSON.stringify(cases[0].session));activeCaseId=cases[0].id;showMeta()}}}catch(e){$("case-count").textContent="CASES UNAVAILABLE";$("case-description").textContent=e.message}}
+$("load-case").addEventListener("click",()=>{const item=cases.find(entry=>entry.id===$("case-select").value);if(!item)return;session=JSON.parse(JSON.stringify(item.session));activeCaseId=item.id;resetMedia();showMeta();msg(`Loaded ${item.title||item.session.title}. Illustrative case; no source media.`);runFlavor()});
+async function loadCases(){try{const response=await fetch("/api/cases");if(!response.ok)throw Error("Case library unavailable");const data=await response.json();cases=data.cases;const select=$("case-select");select.replaceChildren();for(const item of cases)select.add(new Option(item.session.title,item.id));$("case-count").textContent=`${cases.length} CASES`;$("load-case").disabled=!cases.length;if(cases.length){select.value=cases[0].id;$("case-description").textContent=cases[0].description;if(!session.ingredients.length&&!session.events.length&&$("title").value==="Untitled cooking session"){session=JSON.parse(JSON.stringify(cases[0].session));activeCaseId=cases[0].id;showMeta();runFlavor()}}}catch(e){$("case-count").textContent="CASES UNAVAILABLE";$("case-description").textContent=e.message}}
+async function runFlavor(){
+  readMeta();const key=predictionKey(),serial=++flavorSerial;
+  flavorKey=key;
+  const button=$("calculate-flavor");button.disabled=true;
+  $("flavor-status").textContent="Calculating with the local research engine…";
+  try{
+    const response=await fetch("/api/flavor/predict",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session,case_id:activeCaseId,residual:$("flavor-model").value})});
+    const data=await response.json();
+    if(!response.ok)throw Error(typeof data.detail==="string"?data.detail:"Flavor estimate failed.");
+    if(serial!==flavorSerial||key!==predictionKey())return;
+    flavorResult=data;flavorKey=key;renderFlavor(data);
+    $("flavor-status").textContent=`${Object.values(data.axes).filter(axis=>axis.score!==null).length} dimensions scored · ${data.sequence_model?.requested==="mamba"?"Mamba exploratory":"deterministic"}`;
+  }catch(error){
+    if(serial!==flavorSerial)return;
+    flavorResult=null;flavorKey=null;renderFlavor(null,error.message);
+    $("flavor-status").textContent=error.message;
+  }finally{if(serial===flavorSerial)button.disabled=false}
+}
+$("calculate-flavor").addEventListener("click",runFlavor);
+$("flavor-model").addEventListener("change",runFlavor);
 async function refreshModels(){try{const response=await fetch("/api/local-models");const data=await response.json();const list=$("model");list.replaceChildren(new Option("Manual annotation",""));for(const name of data.models)list.add(new Option(name,name));$("model-note").textContent=data.models.length?"Local vision model available. Drafts require review.":"No local vision model found. Manual annotation is ready."}catch{$("model-note").textContent="Manual annotation is ready."}updateAnalyze()}
 async function frameAt(time){const video=$("video");return new Promise((resolve,reject)=>{const onSeek=()=>{video.removeEventListener("seeked",onSeek);try{const canvas=document.createElement("canvas");const scale=Math.min(1,1280/Math.max(video.videoWidth,video.videoHeight));canvas.width=Math.max(1,Math.round(video.videoWidth*scale));canvas.height=Math.max(1,Math.round(video.videoHeight*scale));canvas.getContext("2d").drawImage(video,0,0,canvas.width,canvas.height);resolve({timestamp_s:time,jpeg:canvas.toDataURL("image/jpeg",.72).split(",")[1]})}catch(e){reject(e)}};video.addEventListener("seeked",onSeek,{once:true});video.currentTime=time})}
 $("analyze").addEventListener("click",async()=>{readMeta();const button=$("analyze");button.disabled=true;$("model-note").textContent="Sampling frames and drafting locally. On a CPU this may take minutes.";try{const duration=session.duration_s;const times=[.01,.2,.4,.6,.8,.98].map(r=>Math.min(duration*.999,Math.max(.001,duration*r)));const frames=[];for(const time of times)frames.push(await frameAt(time));const response=await fetch("/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:$("model").value,duration_s:duration,recipe_text:session.recipe_text,frames})});const data=await response.json();if(!response.ok)throw Error(data.detail||"Analysis failed");session.ingredients.push(...data.ingredients);session.events.push(...data.events);session.analysis_model=data.analysis_model;render();msg("Draft added. Review each item against the source.")}catch(e){msg(`Local analysis failed: ${e.message}`)}finally{$("model-note").textContent="Drafts require human review.";updateAnalyze()}});
