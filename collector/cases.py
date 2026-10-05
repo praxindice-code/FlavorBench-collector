@@ -30,6 +30,8 @@ def sample_cases() -> list[dict]:
             description=step["description"],
             evidence="instructed", confidence="high", reviewed=True,
             duration_s=step.get("duration_s"),
+            target_temperature_c=step.get("target_temperature_c"),
+            particle_size_mm=step.get("particle_size_mm"),
         ) for step in steps]
         amounts = ", ".join(f"{row[1]} g {row[0]}" for row in case["ingredients"])
         directions = " ".join(step["description"] for step in steps)

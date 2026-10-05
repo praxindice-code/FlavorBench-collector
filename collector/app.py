@@ -15,7 +15,13 @@ WEB = Path(__file__).resolve().parent / "web"
 
 @app.middleware("http")
 async def local_guard(request: Request, call_next):
-    if request.headers.get("content-length") and int(request.headers["content-length"]) > 6_000_000:
+    try:
+        content_length = int(request.headers.get("content-length", "0"))
+    except ValueError:
+        return JSONResponse({"detail": "Invalid content length."}, status_code=400)
+    if content_length < 0:
+        return JSONResponse({"detail": "Invalid content length."}, status_code=400)
+    if content_length > 6_000_000:
         return JSONResponse({"detail": "Request too large."}, status_code=413)
     if request.method not in ("GET", "HEAD", "OPTIONS"):
         origin = request.headers.get("origin")

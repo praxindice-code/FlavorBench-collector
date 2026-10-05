@@ -35,9 +35,10 @@ class Event(StrictModel):
 
 
 class Session(StrictModel):
-    schema_version: Literal["1.1"] = "1.1"
+    schema_version: Literal["1.2"] = "1.2"
     title: str = Field(default="Untitled cooking session", min_length=1, max_length=120)
     source_name: str = Field(default="", max_length=255)
+    source_sha256: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
     duration_s: Seconds = 0
     recipe_text: str = Field(default="", max_length=12000)
     ingredients: list[Ingredient] = Field(default_factory=list, max_length=80)
@@ -47,8 +48,8 @@ class Session(StrictModel):
     @model_validator(mode="before")
     @classmethod
     def migrate_v1(cls, value):
-        if isinstance(value, dict) and value.get("schema_version") == "1.0":
-            return {**value, "schema_version": "1.1"}
+        if isinstance(value, dict) and value.get("schema_version") in {"1.0", "1.1"}:
+            return {**value, "schema_version": "1.2"}
         return value
 
     @model_validator(mode="after")

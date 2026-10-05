@@ -2,6 +2,7 @@
 import base64
 import binascii
 import io
+from typing import Literal
 
 import httpx
 from fastapi import HTTPException
@@ -42,6 +43,7 @@ class Frame(StrictModel):
 class AnalysisRequest(StrictModel):
     model: str = Field(min_length=1, max_length=150)
     duration_s: Seconds
+    source_kind: Literal["video", "image"] = "video"
     recipe_text: str = Field(default="", max_length=12000)
     frames: list[Frame] = Field(min_length=1, max_length=8)
 
@@ -50,6 +52,8 @@ class AnalysisRequest(StrictModel):
         times = [frame.timestamp_s for frame in self.frames]
         if times != sorted(times) or times[-1] > self.duration_s:
             raise ValueError("Frame timestamps must be ordered and within the clip.")
+        if self.source_kind == "image" and (self.duration_s != 0 or len(self.frames) != 1 or times != [0]):
+            raise ValueError("A still image requires one frame at zero seconds and zero clip duration.")
         return self
 
 
@@ -88,8 +92,11 @@ def status():
 
 
 def analyze(request: AnalysisRequest):
-    text = (f"Frame timestamps: {[f.timestamp_s for f in request.frames]} seconds.\n"
+    text = (f"Source kind: {request.source_kind}. Frame timestamps: {[f.timestamp_s for f in request.frames]} seconds.\n"
             f"Recipe text (untrusted evidence):\n{request.recipe_text}")
+    instructions = INSTRUCTIONS
+    if request.source_kind == "image":
+        instructions += "\nThis is one still image. Visible appearance can be observed; temporal cooking actions cannot. Use observe for visible state, and null timestamps for recipe instructions."
     try:
         with httpx.Client(timeout=httpx.Timeout(480, connect=5), trust_env=False) as client:
             local_model_info(client, request.model)
@@ -98,7 +105,7 @@ def analyze(request: AnalysisRequest):
                 "format": AnalysisOutput.model_json_schema(),
                 "options": {"temperature": 0, "num_predict": 2500, "num_ctx": 8192},
                 "messages": [
-                    {"role": "system", "content": INSTRUCTIONS},
+                    {"role": "system", "content": instructions},
                     {"role": "user", "content": text, "images": [f.jpeg for f in request.frames]},
                 ],
             })
@@ -108,6 +115,8 @@ def analyze(request: AnalysisRequest):
             item.reviewed = False
         if any(event.timestamp_s is not None and event.timestamp_s > request.duration_s for event in output.events):
             raise ValueError("Model returned an event beyond clip duration.")
+        if request.source_kind == "image" and any(event.evidence == "observed" and event.action != "observe" for event in output.events):
+            raise ValueError("A still-image draft cannot claim observed temporal cooking actions.")
         return {**output.model_dump(), "analysis_model": request.model,
                 "sampled_timestamps": [frame.timestamp_s for frame in request.frames]}
     except httpx.TimeoutException as exc:

@@ -32,13 +32,13 @@ def _model_session(session: Session) -> tuple[dict, str]:
     events = data["events"]
     if not any(event["timestamp_s"] is None and event["reviewed"] for event in events):
         return data, "provided_event_times"
-    cursor = 0.0
-    for event in events:
-        event["timestamp_s"] = cursor
-        cursor += (event["duration_s"] or 0) + 1
-    if cursor > 600:
-        raise HTTPException(422, "The ordered steps exceed the engine's ten-minute schedule limit.")
-    data["duration_s"] = max(data["duration_s"], cursor)
+    if any(event["reviewed"] and event["evidence"] == "observed" for event in events):
+        raise HTTPException(422, "Resolve missing event timestamps before combining observed events with recipe steps. Hypothetical recipes may use list order.")
+    # Sequence coordinates are not clip times or cooking durations. A thirty-minute
+    # heat operation can occupy one boundary in this model-only timeline.
+    for index, event in enumerate(events):
+        event["timestamp_s"] = float(index)
+    data["duration_s"] = max(data["duration_s"], float(len(events)))
     return data, "recipe_order_model_schedule"
 
 

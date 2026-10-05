@@ -3,8 +3,10 @@ import io
 import json
 from pathlib import Path
 
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from PIL import Image
+import pytest
 from collector.app import app
 from collector.cases import sample_cases
 from collector import local_vision
@@ -28,6 +30,38 @@ def test_synthetic_session_roundtrip_and_order():
     assert "sensory_observations" not in validated
 
 
+def test_source_fingerprint_is_validated_and_preserved():
+    response = client.post("/api/validate", json={"source_sha256": "f" * 64})
+    assert response.status_code == 200
+    assert response.json()["source_sha256"] == "f" * 64
+    assert client.post("/api/validate", json={"source_sha256": "not-a-digest"}).status_code == 422
+
+
+def test_still_image_draft_cannot_invent_observed_temporal_actions(monkeypatch):
+    buffer = io.BytesIO()
+    Image.new("RGB", (2, 2)).save(buffer, format="JPEG")
+    frame = {"timestamp_s": 0, "jpeg": base64.b64encode(buffer.getvalue()).decode()}
+    request = local_vision.AnalysisRequest(model="local-vision", source_kind="image", duration_s=0, frames=[frame])
+
+    class FakeResponse:
+        def __init__(self, value): self.value = value
+        def raise_for_status(self): pass
+        def json(self): return self.value
+
+    class FakeClient:
+        def __init__(self, **kwargs): assert kwargs["trust_env"] is False
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def post(self, url, json):
+            if url.endswith("/api/show"):
+                return FakeResponse({"capabilities": ["vision"]})
+            return FakeResponse({"message": {"content": '{"ingredients":[],"events":[{"action":"heat","description":"Heating","evidence":"observed","timestamp_s":0}]}'}})
+
+    monkeypatch.setattr(local_vision.httpx, "Client", FakeClient)
+    response = client.post("/api/analyze", json=request.model_dump())
+    assert response.status_code == 422
+
+
 def test_timestamp_after_clip_rejected():
     sample = json.loads(SAMPLE.read_text(encoding="utf-8"))
     sample["events"][0]["timestamp_s"] = 61
@@ -37,7 +71,7 @@ def test_timestamp_after_clip_rejected():
 def test_old_schema_version_can_import():
     sample = json.loads(SAMPLE.read_text(encoding="utf-8"))
     sample["schema_version"] = "1.0"
-    assert Session.model_validate(sample).schema_version == "1.1"
+    assert Session.model_validate(sample).schema_version == "1.2"
 
 
 def test_evaluation_matches_reviewed_observed_events_once():
@@ -56,9 +90,44 @@ def test_evaluation_matches_reviewed_observed_events_once():
     assert compare(reference, candidate)["candidate_events"] == 4
 
 
+@pytest.mark.parametrize("tolerance", [0, -1, float("nan"), float("inf")])
+def test_evaluation_rejects_invalid_tolerance(tolerance):
+    with pytest.raises(ValueError, match="finite and positive"):
+        compare(Session(), Session(), tolerance)
+
+
+def test_evaluation_checks_media_identity_and_reports_legacy_limit():
+    reference = Session(source_name="clip.mp4", duration_s=1,
+                        events=[{"description": "Visible bowl", "timestamp_s": 0, "reviewed": True}])
+    candidate = reference.model_copy(deep=True)
+    assert compare(reference, candidate)["source_match_basis"] == "filename_only_unverified"
+    candidate.source_name = "different.mp4"
+    with pytest.raises(ValueError, match="same source"):
+        compare(reference, candidate)
+    reference.source_sha256 = "a" * 64
+    with pytest.raises(ValueError, match="Both sessions need"):
+        compare(reference, candidate)
+    candidate.source_sha256 = "b" * 64
+    with pytest.raises(ValueError, match="fingerprints differ"):
+        compare(reference, candidate)
+    candidate.source_sha256 = reference.source_sha256
+    assert compare(reference, candidate)["source_match_basis"] == "sha256"
+
+
+def test_evaluation_does_not_treat_empty_truth_as_perfect_agreement():
+    with pytest.raises(ValueError, match="Reference needs"):
+        compare(Session(source_name="clip.mp4"), Session(source_name="clip.mp4"))
+
+
 def test_cross_origin_write_rejected():
     response = client.post("/api/validate", json={}, headers={"origin": "https://outside.example"})
     assert response.status_code == 403
+
+
+@pytest.mark.parametrize("length", ["invalid", "-1"])
+def test_malformed_content_length_returns_client_error(length):
+    response = client.post("/api/validate", json={}, headers={"content-length": length})
+    assert response.status_code == 400
 
 
 def test_public_schema_excludes_private_fields():
@@ -112,8 +181,51 @@ def test_flavor_model_schedule_does_not_change_exported_case():
     model_input, basis = flavor_bridge._model_session(session)
     assert basis == "recipe_order_model_schedule"
     assert [event.timestamp_s for event in session.events] == [None] * 4
-    assert [event["timestamp_s"] for event in model_input["events"]] == [0, 1, 422, 423]
-    assert model_input["duration_s"] >= 424
+    assert [event["timestamp_s"] for event in model_input["events"]] == [0, 1, 2, 3]
+    assert model_input["duration_s"] == 4
+
+
+def test_long_cooking_duration_is_independent_of_model_sequence():
+    for case in sample_cases():
+        session = Session.model_validate(case["session"])
+        heat = next((event for event in session.events if event.action == "heat"), None)
+        if heat:
+            heat.duration_s = 1800
+        original = session.model_dump(mode="json")
+        modeled, basis = flavor_bridge._model_session(session)
+        assert basis == "recipe_order_model_schedule"
+        assert modeled["duration_s"] == len(session.events)
+        assert session.model_dump(mode="json") == original
+        if heat:
+            assert next(event for event in modeled["events"] if event["action"] == "heat")["duration_s"] == 1800
+
+
+def test_model_schedule_preserves_observed_evidence_boundaries():
+    session = Session.model_validate(sample_cases()[-2]["session"])
+    session.events[0].timestamp_s = 0
+    session.events[0].evidence = "observed"
+    with pytest.raises(HTTPException) as exc:
+        flavor_bridge._model_session(session)
+    assert exc.value.status_code == 422
+
+
+def test_authored_case_keeps_explicit_heat_and_preparation_parameters(monkeypatch):
+    from collector import cases as catalog
+    from types import SimpleNamespace
+    source = [{"id": "parameters", "title": "Parameter preservation", "description": "Synthetic test",
+               "ingredients": [["onion", 100, "minced"]], "steps": [
+                   {"action": "cut", "ingredient": "onion", "description": "Cut onion", "particle_size_mm": 3},
+                   {"action": "heat", "ingredient": "onion", "description": "Heat onion", "duration_s": 1800,
+                    "target_temperature_c": 160}]}]
+    monkeypatch.setattr(catalog, "CATALOG", SimpleNamespace(read_text=lambda **kwargs: json.dumps(source)))
+    catalog.sample_cases.cache_clear()
+    try:
+        events = catalog.sample_cases()[0]["session"]["events"]
+        assert events[0]["particle_size_mm"] == 3
+        assert events[1]["target_temperature_c"] == 160
+        assert events[1]["duration_s"] == 1800
+    finally:
+        catalog.sample_cases.cache_clear()
 
 
 def test_demo_proxy_is_removed_after_a_recipe_edit(monkeypatch):

@@ -12,3 +12,6 @@ __pycache__/
 *.jpeg
 *.png
 exports/
+
+# Temporary pytest cache directories
+pytest-cache-files-*/
